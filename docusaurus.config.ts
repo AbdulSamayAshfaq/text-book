@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Physical AI & Robotics Textbook',
+  title: 'Physical AI & Robotics',
   tagline: 'Understanding the Convergence of AI, Physics, and Robotics',
   favicon: 'img/favicon.ico',
 
@@ -46,7 +46,7 @@ const config: Config = {
           editUrl:
             'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
         },
-        blog: false,
+        blog: false, // ✅ ALREADY DISABLED - GOOD!
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -87,7 +87,7 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: 'Tutorial',
+              label: 'Textbook',
               to: '/docs/intro',
             },
           ],
@@ -112,13 +112,14 @@ const config: Config = {
         {
           title: 'More',
           items: [
-            {
-              label: 'Blog',
-              to: '/blog',
-            },
+            // ❌ REMOVED: Blog link
+            // {
+            //   label: 'Blog',
+            //   to: '/blog',
+            // },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/ai-physics-textbook/book-website',
             },
           ],
         },
