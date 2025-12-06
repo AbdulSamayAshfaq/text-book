@@ -1,0 +1,322 @@
+openapi: 3.0.0
+info:
+  title: Textbook RAG Chatbot API
+  description: API for querying the Physical AI & Humanoid Robotics textbook via RAG
+  version: 1.0.0
+  contact:
+    name: Project Team
+    url: https://github.com/your-org/ai-textbook
+
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production (Vercel)
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+tags:
+  - name: Chat
+    description: RAG chatbot endpoints
+  - name: Health
+    description: System health and status
+
+paths:
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Query the textbook via RAG chatbot
+      description: |
+        Submit a question to the chatbot. The system will:
+        1. Generate embedding for the query (via MiniLM)
+        2. Search Qdrant for top-K similar chunks
+        3. Retrieve full chunk text + metadata from Neon
+        4. Aggregate answer
+        5. Log query + response
+
+        **Accuracy**: 95% of in-scope queries return accurate answers.
+        **Latency**: p95 < 2 seconds.
+      operationId: chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              english:
+                summary: English query
+                value:
+                  query: "What is embodied cognition?"
+                  language: "en"
+              urdu:
+                summary: Urdu query
+                value:
+                  query: "روبوٹ کی حرکیات کیا ہے؟"
+                  language: "ur"
+      responses:
+        '200':
+          description: Query answered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                success:
+                  summary: Successful response with sources
+                  value:
+                    answer: "Embodied cognition is the theory that many aspects of cognition are shaped by the body's physical interactions with the world..."
+                    sources:
+                      - chapter: "Introduction to Physical AI"
+                        section: "1.2 Core Concepts"
+                        text: "Embodied cognition refers to..."
+                    latency_ms: 1450
+                    in_scope: true
+        '204':
+          description: No relevant information found in textbook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponseOutOfScope'
+              examples:
+                outofscope:
+                  summary: Out-of-scope response
+                  value:
+                    answer: "This topic is not covered in the textbook. Please refer to the Introduction to Physical AI chapter or consult external resources."
+                    sources: []
+                    latency_ms: 1200
+                    in_scope: false
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_query:
+                  summary: Missing query field
+                  value:
+                    error: "invalid_query"
+                    details: "query field is required and must be a non-empty string"
+        '503':
+          description: Service unavailable (Qdrant or Neon down)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unavailable:
+                  summary: Vector database unavailable
+                  value:
+                    error: "service_unavailable"
+                    details: "Qdrant vector database is currently unavailable. Please try again in a moment."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal:
+                  summary: Unexpected error
+                  value:
+                    error: "internal_error"
+                    details: "An unexpected error occurred. Please try again or contact support."
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check system health
+      description: |
+        Returns health status of all system components.
+        **Uptime target**: 99.0% availability.
+      operationId: health
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All systems operational
+                  value:
+                    status: "ok"
+                    components:
+                      qdrant: true
+                      neon: true
+                    timestamp: "2025-12-06T12:00:00Z"
+                degraded:
+                  summary: One component down
+                  value:
+                    status: "degraded"
+                    components:
+                      qdrant: false
+                      neon: true
+                    timestamp: "2025-12-06T12:00:00Z"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                unhealthy:
+                  summary: Critical components down
+                  value:
+                    status: "down"
+                    components:
+                      qdrant: false
+                      neon: false
+                    timestamp: "2025-12-06T12:00:00Z"
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 5
+          maxLength: 1000
+          description: User's question (automatically truncated to 1000 chars)
+          example: "What is kinematics in robotics?"
+        language:
+          type: string
+          enum: ["en", "ur"]
+          default: "en"
+          description: Language code (English or Urdu)
+      example:
+        query: "How do ROS 2 topics work?"
+        language: "en"
+
+    ChatResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - latency_ms
+        - in_scope
+      properties:
+        answer:
+          type: string
+          description: Generated answer from textbook
+          example: "ROS 2 topics are named buses over which nodes exchange messages of a given type..."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+          description: Retrieved chunks with metadata
+          minItems: 1
+        latency_ms:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          description: Query processing time in milliseconds
+          example: 1450
+        in_scope:
+          type: boolean
+          description: true if answer found in textbook; false if out-of-scope
+          example: true
+
+    ChatResponseOutOfScope:
+      type: object
+      required:
+        - answer
+        - sources
+        - latency_ms
+        - in_scope
+      properties:
+        answer:
+          type: string
+          description: Out-of-scope message
+          example: "This topic is not covered in the textbook. Please consult external resources."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+          maxItems: 0
+          description: Empty array for out-of-scope queries
+        latency_ms:
+          type: integer
+          minimum: 0
+          description: Query processing time
+          example: 1200
+        in_scope:
+          type: boolean
+          example: false
+
+    Source:
+      type: object
+      required:
+        - chapter
+        - section
+        - text
+      properties:
+        chapter:
+          type: string
+          description: Chapter title
+          example: "ROS 2 Fundamentals"
+        section:
+          type: string
+          description: Section identifier
+          example: "3.1.2 Topic Subscriptions"
+        text:
+          type: string
+          description: Exact chunk text from textbook
+          example: "In ROS 2, topics are the primary mechanism..."
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - components
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: ["ok", "degraded", "down"]
+          description: Overall system status
+          example: "ok"
+        components:
+          type: object
+          required:
+            - qdrant
+            - neon
+          properties:
+            qdrant:
+              type: boolean
+              description: Qdrant vector database operational
+              example: true
+            neon:
+              type: boolean
+              description: Neon PostgreSQL operational
+              example: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp (ISO 8601)
+          example: "2025-12-06T12:00:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_query
+            - invalid_language
+            - service_unavailable
+            - internal_error
+          description: Error code
+          example: "service_unavailable"
+        details:
+          type: string
+          description: Human-readable error message
+          example: "Qdrant vector database is currently unavailable. Please try again in a moment."

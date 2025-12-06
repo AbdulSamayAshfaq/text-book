@@ -1,0 +1,132 @@
+.widgetContainer {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+.openButton {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25), 0 14px 32px rgba(15, 23, 42, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.openButton:hover {
+  transform: scale(1.12) translateY(-4px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.3), 0 18px 40px rgba(15, 23, 42, 0.25);
+  background: linear-gradient(135deg, #000000 0%, #0f172a 100%);
+}
+
+.openButton:active {
+  transform: scale(0.94);
+}
+
+.panel {
+  width: 380px;
+  height: 500px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 25px 70px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.panelHeader {
+  padding: 20px 24px;
+  background: linear-gradient(to right, #0f172a 0%, #1e293b 50%, #334155 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+  position: relative;
+}
+
+.panelHeader::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+}
+
+.closeButton {
+  background: transparent;
+  color: white;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.closeButton:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.panelBody {
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    width: 340px;
+    height: 450px;
+  }
+
+  .widgetContainer {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .openButton {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+}
