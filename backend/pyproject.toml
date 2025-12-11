@@ -18,6 +18,14 @@ dependencies = [
     "sentence-transformers>=2.2.0",
     "python-dotenv>=1.0.0",
     "structlog>=23.0.0",
+    "langchain>=0.1.0",
+    "openai>=1.0.0",
+    "python-multipart>=0.0.6",
+    "better-auth>=1.0.0",
+    "pyjwt>=2.8.0",
+    "passlib>=1.7.4",
+    "bcrypt>=4.0.0",
+    "httpx>=0.25.0",
 ]
 
 [project.optional-dependencies]

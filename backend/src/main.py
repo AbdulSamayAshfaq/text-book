@@ -1,13 +1,17 @@
 """AI Textbook Backend - FastAPI Application Entry Point"""
 
 import os
+import re
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import structlog
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple, Optional
 import io
+from .ai.rag.retriever import RAGRetriever
+from .ai.rag.models import Document
+from .routes import rag
 
 # Configure logging
 structlog.configure(
@@ -28,6 +32,89 @@ structlog.configure(
 )
 
 logger = structlog.get_logger(__name__)
+
+# Global RAG retriever instance
+rag_retriever = RAGRetriever()
+
+def load_textbook_documents():
+    """Load textbook chapters from docs directory into RAG system"""
+    try:
+        # Locate docs directory relative to repository root
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        docs_dir = os.path.join(repo_root, 'docs')
+
+        documents = []
+
+        # Load chapter files (1-6) first, then other docs
+        chapter_files = []
+        other_files = []
+
+        for root, _, files in os.walk(docs_dir):
+            for fname in files:
+                if fname.lower().endswith('.md'):
+                    fpath = os.path.join(root, fname)
+                    if fname.startswith(('1-', '2-', '3-', '4-', '5-', '6-')):
+                        chapter_files.append((fpath, fname))
+                    else:
+                        other_files.append((fpath, fname))
+
+        # Sort chapter files by number
+        chapter_files.sort(key=lambda x: int(x[1].split('-')[0]))
+
+        # Load all files
+        all_files = chapter_files + other_files
+
+        for fpath, fname in all_files:
+            try:
+                with io.open(fpath, 'r', encoding='utf-8') as fh:
+                    content = fh.read()
+
+                # Extract title from first line if it's a heading
+                title = fname.replace('.md', '').replace('-', ' ').title()
+                if content.startswith('# '):
+                    title_line = content.split('\n')[0].strip('# ').strip()
+                    if title_line:
+                        title = title_line
+
+                # Extract chapter number if it's a numbered chapter
+                chapter = None
+                if fname.startswith(('1-', '2-', '3-', '4-', '5-', '6-')):
+                    chapter = fname.split('-')[0]
+
+                # Create document
+                doc_id = f"doc_{fname.replace('.md', '')}"
+                rel_path = os.path.relpath(fpath, repo_root).replace('\\', '/')
+
+                doc = Document(
+                    id=doc_id,
+                    content=content,
+                    metadata={
+                        "path": rel_path,
+                        "filename": fname,
+                        "chapter": chapter
+                    },
+                    source=title,
+                    chapter=chapter,
+                    title=title
+                )
+
+                documents.append(doc)
+                logger.info("document_loaded", filename=fname, title=title, chapter=chapter)
+
+            except Exception as e:
+                logger.error("failed_to_load_document", filename=fname, error=str(e))
+                continue
+
+        # Add documents to retriever
+        rag_retriever.add_documents(documents)
+
+        # Build chunks and embeddings
+        rag_retriever.build_index()
+
+        logger.info("textbook_documents_loaded", count=len(documents))
+
+    except Exception as e:
+        logger.error("failed_to_load_textbook_documents", error=str(e))
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -56,6 +143,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(rag.router)
+
+# Load textbook documents on startup
+logger.info("loading_textbook_documents")
+load_textbook_documents()
 
 
 @app.get("/")

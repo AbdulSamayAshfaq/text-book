@@ -12,21 +12,39 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "spec:generate": "echo 'SpeckitPlus doc generation would run here'",
+    "spec:sync": "echo 'Sync specs to Docusaurus docs'",
+    "spec:validate": "echo 'Validate all spec files'",
+    "dev": "concurrently \"npm run start\" \"npm run backend:dev\"",
+    "backend:dev": "cd backend && python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000",
+    "backend:build": "cd backend && python -m build",
+    "test": "jest",
+    "lint": "eslint src/"
   },
   "dependencies": {
     "@docusaurus/core": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
     "@mdx-js/react": "^3.0.0",
+    "axios": "^1.13.2",
+    "better-auth": "^1.0.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.6.0",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.9.2",
     "@docusaurus/tsconfig": "3.9.2",
     "@docusaurus/types": "3.9.2",
+    "@testing-library/react": "^14.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "concurrently": "^8.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
     "typescript": "~5.6.2"
   },
   "browserslist": {
